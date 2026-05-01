@@ -10,24 +10,17 @@
       name: "HOME",
       url: "https://m5rdev.github.io/M5RDEV",
       keywords: [
-        // أساسي
-        "m5rdev","m5r","dev",
+        "m5rdev","m5r","dev","m5r-tech",
 
-        // الاسم
         "mahmoud","rady","mahmoudrady","mahmouddev",
         "محمود","راضي","محمودراضي",
-        "باشمهندس","باشمنهدس","باشمهند",
 
-        // CV / Portfolio
         "cv","resume","portfolio","portofolio",
-        "personal","website","personalwebsite",
-        "mysite","mywebsite","site",
+        "personal","website","mysite","site",
 
-        // عربي CV
         "سيره","السيره","السيرهالذاتيه",
         "سيرهذاتيه","ملفشخصي","بروفايل",
 
-        // أخطاء
         "resum","protfolio","portoflio"
       ]
     },
@@ -36,18 +29,27 @@
       name: "BIO",
       url: "https://m5rdev.github.io/M5RDEV-BIO",
       keywords: [
+        // أساسي
         "bio","biography",
+
+        // مركبة قوية 🔥
+        "m5rdevbio","m5rbio","m5r-bio","m5rdev-bio",
+        "m5rbiography","m5rdevbiography",
+        "m5rdevprofile","m5rprofile",
+        "m5rdevlinks","m5rlinks",
+        "m5rdevcontact","m5rcontact",
+        "m5rsocial","m5rdevsocial",
 
         // تواصل
         "social","contact","contacts","links",
-        "linktree","sociallinks","mylinks",
+        "linktree","sociallinks","mylinks","profile",
 
         // عربي
         "تواصل","وسائلالتواصل","لينكات","روابط",
-        "حساباتي","حسابات","السوشيال",
+        "حساباتي","حسابات","السوشيال","بروفايلي",
 
         // أخطاء
-        "contcat","socal","biog"
+        "contcat","socal","biog","bioo","biio"
       ]
     },
 
@@ -58,16 +60,9 @@
         "muslim","islam","quran","hadith",
         "deen","islamic",
 
-        // موسوعة
         "encyclopedia","muslimencyclopedia",
-        "muslimencolopedia","muslemencyclopedia",
 
-        // عربي
-        "موسوعه","موسوعهالمسلم","المسلم",
-        "اسلام","اسلامي","دين",
-
-        // أخطاء
-        "moslem","muslm","islm"
+        "موسوعه","المسلم","اسلام","دين"
       ]
     },
 
@@ -76,35 +71,191 @@
       url: "https://m5rdev.github.io/MuslimEncyclopedia-online",
       keywords: [
         "online","web","app","live",
+        "muslimonline","encyclopediaonline",
 
-        // تركيبات
-        "muslimonline",
-        "encyclopediaonline",
-        "muslimencyclopediaonline",
-
-        // عربي
-        "اونلاين","انلاين","مباشر",
-        "موسوعهاونلاين","موسوعهالمسلماونلاين",
-
-        // أخطاء
-        "onlin","onlne","on-line"
+        "اونلاين","مباشر"
       ]
     }
   ];
 
   const DEFAULT = "https://m5rdev.github.io/M5RDEV";
 
-  let raw = decodeURIComponent(location.pathname);
+  let raw = decodeURIComponent(location.pathname || "");
 
-  // إزالة التكرار
+  // =========================
+  // 🔧 CLEANING & NORMALIZE
+  // =========================
+
   function removeDuplicates(text) {
     return text.replace(/(.)\1+/g, "$1");
   }
 
-  // تنظيف
   function normalize(text) {
     return removeDuplicates(
       text
+        .toLowerCase()
+        .trim()
+        .replace(/[\s\-_./]+/g, "")
+        .replace(/[أإآ]/g, "ا")
+        .replace(/ى/g, "ي")
+        .replace(/ة/g, "ه")
+        .replace(/ؤ/g, "و")
+        .replace(/ئ/g, "ي")
+        .replace(/[^\w\u0600-\u06FF]/g, "")
+    );
+  }
+
+  function splitWords(text) {
+    return text
+      .toLowerCase()
+      .split(/[\s\-_./]+/)
+      .map(w => normalize(w))
+      .filter(Boolean);
+  }
+
+  let clean = normalize(raw);
+  let words = splitWords(raw);
+
+  // =========================
+  // 🧠 SIMILARITY
+  // =========================
+
+  function levenshtein(a, b) {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        matrix[i][j] = b[i-1] === a[j-1]
+          ? matrix[i-1][j-1]
+          : Math.min(
+              matrix[i-1][j-1] + 1,
+              matrix[i][j-1] + 1,
+              matrix[i-1][j] + 1
+            );
+      }
+    }
+    return matrix[b.length][a.length];
+  }
+
+  function similarity(a, b) {
+    if (!a || !b) return 0;
+    let longer = a.length > b.length ? a : b;
+    let shorter = a.length > b.length ? b : a;
+    let len = longer.length;
+    if (len === 0) return 1;
+    return (len - levenshtein(longer, shorter)) / len;
+  }
+
+  // =========================
+  // 🎯 SCORING
+  // =========================
+
+  function scoreRoute(route, cleanText, wordList) {
+    let score = 0;
+    let matchedKeywords = 0;
+
+    const isBIO = route.name === "BIO";
+    const weight = isBIO ? 1.7 : 1;
+
+    for (let keyword of route.keywords) {
+      let key = normalize(keyword);
+      let matched = false;
+
+      if (cleanText.includes(key)) {
+        score += 8 * weight;
+        matched = true;
+      }
+
+      if (key.includes(cleanText)) {
+        score += 5 * weight;
+        matched = true;
+      }
+
+      for (let w of wordList) {
+        if (w.includes(key) || key.includes(w)) {
+          score += 6 * weight;
+          matched = true;
+        }
+
+        let sim = similarity(w, key);
+        if (sim > 0.8) {
+          score += 5 * weight;
+          matched = true;
+        } else if (sim > 0.6) {
+          score += 3 * weight;
+        }
+      }
+
+      let simFull = similarity(cleanText, key);
+      if (simFull > 0.75) {
+        score += 4 * weight;
+        matched = true;
+      }
+
+      if (matched) matchedKeywords++;
+    }
+
+    // boost بعدد الكلمات
+    score += matchedKeywords * (isBIO ? 5 : 3);
+
+    // boost intent مباشر 🔥
+    if (isBIO && wordList.includes("bio")) {
+      score += 20;
+    }
+
+    return score;
+  }
+
+  // =========================
+  // 🧮 INITIAL SCORING
+  // =========================
+
+  let results = ROUTES.map(route => ({
+    route,
+    score: scoreRoute(route, clean, words)
+  }));
+
+  results.sort((a, b) => b.score - a.score);
+
+  // =========================
+  // ⚖️ TIE BREAKER
+  // =========================
+
+  if (results.length > 1 && results[0].score === results[1].score) {
+
+    function removeM5R(text) {
+      return text.replace(/m5rdev/g, "").replace(/m5r/g, "");
+    }
+
+    let newClean = removeM5R(clean);
+
+    results = ROUTES.map(route => ({
+      route,
+      score: scoreRoute(route, newClean, words)
+    }));
+
+    results.sort((a, b) => b.score - a.score);
+  }
+
+  let best = results[0];
+
+  // =========================
+  // 🚀 REDIRECT
+  // =========================
+
+  if (!best || best.score < 5) {
+    location.replace(DEFAULT);
+  } else {
+    location.replace(best.route.url);
+  }
+
+})();
+</script>
+</head>
+<body></body>
+</html>      text
         .toLowerCase()
         .replace(/[\s\-_./]/g, "")
         .replace(/[أإآ]/g, "ا")
