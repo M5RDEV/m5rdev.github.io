@@ -10,38 +10,84 @@
       name: "HOME",
       url: "https://m5rdev.github.io/M5RDEV",
       keywords: [
+        // أساسي
         "m5rdev","m5r","dev",
-        "mahmoud","rady","mahmoudrady",
-        "محمود","راضي","محمودراضي","باشمهندس"
+
+        // الاسم
+        "mahmoud","rady","mahmoudrady","mahmouddev",
+        "محمود","راضي","محمودراضي",
+        "باشمهندس","باشمنهدس","باشمهند",
+
+        // CV / Portfolio
+        "cv","resume","portfolio","portofolio",
+        "personal","website","personalwebsite",
+        "mysite","mywebsite","site",
+
+        // عربي CV
+        "سيره","السيره","السيرهالذاتيه",
+        "سيرهذاتيه","ملفشخصي","بروفايل",
+
+        // أخطاء
+        "resum","protfolio","portoflio"
       ]
     },
+
     {
       name: "BIO",
       url: "https://m5rdev.github.io/M5RDEV-BIO",
       keywords: [
-        "bio","biography","cv","profile",
-        "social","contact","links",
-        "m5rbio","m5rdevbio",
-        "سيره","السيره","تواصل","وسائلالتواصل"
+        "bio","biography",
+
+        // تواصل
+        "social","contact","contacts","links",
+        "linktree","sociallinks","mylinks",
+
+        // عربي
+        "تواصل","وسائلالتواصل","لينكات","روابط",
+        "حساباتي","حسابات","السوشيال",
+
+        // أخطاء
+        "contcat","socal","biog"
       ]
     },
+
     {
       name: "MUSLIM",
       url: "https://m5rdev.github.io/MuslimEncyclopedia",
       keywords: [
         "muslim","islam","quran","hadith",
+        "deen","islamic",
+
+        // موسوعة
         "encyclopedia","muslimencyclopedia",
-        "موسوعه","المسلم","اسلام"
+        "muslimencolopedia","muslemencyclopedia",
+
+        // عربي
+        "موسوعه","موسوعهالمسلم","المسلم",
+        "اسلام","اسلامي","دين",
+
+        // أخطاء
+        "moslem","muslm","islm"
       ]
     },
+
     {
       name: "MUSLIM_ONLINE",
       url: "https://m5rdev.github.io/MuslimEncyclopedia-online",
       keywords: [
-        "online","اونلاين","انلاين",
+        "online","web","app","live",
+
+        // تركيبات
         "muslimonline",
         "encyclopediaonline",
-        "موسوعهاونلاين"
+        "muslimencyclopediaonline",
+
+        // عربي
+        "اونلاين","انلاين","مباشر",
+        "موسوعهاونلاين","موسوعهالمسلماونلاين",
+
+        // أخطاء
+        "onlin","onlne","on-line"
       ]
     }
   ];
@@ -50,16 +96,12 @@
 
   let raw = decodeURIComponent(location.pathname);
 
-  // =========================
-  // 🔹 إزالة التكرار (cooool → col)
-  // =========================
+  // إزالة التكرار
   function removeDuplicates(text) {
     return text.replace(/(.)\1+/g, "$1");
   }
 
-  // =========================
-  // 🔹 تنظيف شامل
-  // =========================
+  // تنظيف
   function normalize(text) {
     return removeDuplicates(
       text
@@ -76,7 +118,6 @@
 
   let clean = normalize(raw);
 
-  // تقسيم كلمات
   function splitWords(text) {
     return text.split(/[\s\-_./]+/)
       .map(w => normalize(w))
@@ -85,9 +126,7 @@
 
   let words = splitWords(raw);
 
-  // =========================
-  // 🔹 similarity
-  // =========================
+  // similarity
   function similarity(a, b) {
     if (!a || !b) return 0;
 
@@ -122,31 +161,25 @@
     return matrix[b.length][a.length];
   }
 
-  // =========================
-  // 🔥 نظام النقاط المتقدم
-  // =========================
+  // scoring
   function scoreRoute(route) {
     let score = 0;
     let matchedKeywords = 0;
 
     route.keywords.forEach(keyword => {
       let key = normalize(keyword);
-
       let matched = false;
 
-      // 🔹 تطابق جزئي قوي
       if (clean.includes(key)) {
         score += 6;
         matched = true;
       }
 
-      // 🔹 الكلمة داخل الكلمة
       if (key.includes(clean)) {
         score += 4;
         matched = true;
       }
 
-      // 🔹 مقارنة مع الكلمات
       words.forEach(w => {
         if (w.includes(key) || key.includes(w)) {
           score += 5;
@@ -162,7 +195,6 @@
         }
       });
 
-      // 🔹 similarity عام
       let simFull = similarity(clean, key);
       if (simFull > 0.7) {
         score += 3;
@@ -172,19 +204,11 @@
       if (matched) matchedKeywords++;
     });
 
-    // 🔥 BONUS: لو أكثر من كلمة تطابقت
     score += matchedKeywords * 3;
-
     return score;
   }
 
-  // =========================
-  // 🎯 اختيار الأفضل
-  // =========================
-  let best = {
-    score: 0,
-    url: DEFAULT
-  };
+  let best = { score: 0, url: DEFAULT };
 
   ROUTES.forEach(route => {
     let s = scoreRoute(route);
@@ -193,9 +217,6 @@
     }
   });
 
-  // =========================
-  // 🚨 fallback
-  // =========================
   if (best.score < 5) {
     location.replace(DEFAULT);
   } else {
