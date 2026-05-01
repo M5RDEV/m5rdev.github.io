@@ -4,7 +4,204 @@
 <meta charset="UTF-8">
 <script>
 (function () {
-  window.location.href = "https://m5rdev.github.io/M5RDEV-BIO/"
+
+  const ROUTES = [
+    {
+      name: "HOME",
+      url: "https://m5rdev.github.io/M5RDEV",
+      keywords: [
+        "m5rdev","m5r","dev",
+        "mahmoud","rady","mahmoudrady",
+        "محمود","راضي","محمودراضي","باشمهندس"
+      ]
+    },
+    {
+      name: "BIO",
+      url: "https://m5rdev.github.io/M5RDEV-BIO",
+      keywords: [
+        "bio","biography","cv","profile",
+        "social","contact","links",
+        "m5rbio","m5rdevbio",
+        "سيره","السيره","تواصل","وسائلالتواصل"
+      ]
+    },
+    {
+      name: "MUSLIM",
+      url: "https://m5rdev.github.io/MuslimEncyclopedia",
+      keywords: [
+        "muslim","islam","quran","hadith",
+        "encyclopedia","muslimencyclopedia",
+        "موسوعه","المسلم","اسلام"
+      ]
+    },
+    {
+      name: "MUSLIM_ONLINE",
+      url: "https://m5rdev.github.io/MuslimEncyclopediaOnline",
+      keywords: [
+        "online","اونلاين","انلاين",
+        "muslimonline",
+        "encyclopediaonline",
+        "موسوعهاونلاين"
+      ]
+    }
+  ];
+
+  const DEFAULT = "https://m5rdev.github.io/M5RDEV-BIO";
+
+  let raw = decodeURIComponent(location.pathname);
+
+  // =========================
+  // 🔹 إزالة التكرار (cooool → col)
+  // =========================
+  function removeDuplicates(text) {
+    return text.replace(/(.)\1+/g, "$1");
+  }
+
+  // =========================
+  // 🔹 تنظيف شامل
+  // =========================
+  function normalize(text) {
+    return removeDuplicates(
+      text
+        .toLowerCase()
+        .replace(/[\s\-_./]/g, "")
+        .replace(/[أإآ]/g, "ا")
+        .replace(/ى/g, "ي")
+        .replace(/ة/g, "ه")
+        .replace(/ؤ/g, "و")
+        .replace(/ئ/g, "ي")
+        .replace(/[^\w\u0600-\u06FF]/g, "")
+    );
+  }
+
+  let clean = normalize(raw);
+
+  // تقسيم كلمات
+  function splitWords(text) {
+    return text.split(/[\s\-_./]+/)
+      .map(w => normalize(w))
+      .filter(Boolean);
+  }
+
+  let words = splitWords(raw);
+
+  // =========================
+  // 🔹 similarity
+  // =========================
+  function similarity(a, b) {
+    if (!a || !b) return 0;
+
+    let longer = a.length > b.length ? a : b;
+    let shorter = a.length > b.length ? b : a;
+
+    let longerLength = longer.length;
+    if (longerLength === 0) return 1;
+
+    let editDistance = levenshtein(longer, shorter);
+    return (longerLength - editDistance) / longerLength;
+  }
+
+  function levenshtein(a, b) {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b[i-1] === a[j-1]) {
+          matrix[i][j] = matrix[i-1][j-1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i-1][j-1] + 1,
+            matrix[i][j-1] + 1,
+            matrix[i-1][j] + 1
+          );
+        }
+      }
+    }
+    return matrix[b.length][a.length];
+  }
+
+  // =========================
+  // 🔥 نظام النقاط المتقدم
+  // =========================
+  function scoreRoute(route) {
+    let score = 0;
+    let matchedKeywords = 0;
+
+    route.keywords.forEach(keyword => {
+      let key = normalize(keyword);
+
+      let matched = false;
+
+      // 🔹 تطابق جزئي قوي
+      if (clean.includes(key)) {
+        score += 6;
+        matched = true;
+      }
+
+      // 🔹 الكلمة داخل الكلمة
+      if (key.includes(clean)) {
+        score += 4;
+        matched = true;
+      }
+
+      // 🔹 مقارنة مع الكلمات
+      words.forEach(w => {
+        if (w.includes(key) || key.includes(w)) {
+          score += 5;
+          matched = true;
+        }
+
+        let sim = similarity(w, key);
+        if (sim > 0.75) {
+          score += 4;
+          matched = true;
+        } else if (sim > 0.55) {
+          score += 2;
+        }
+      });
+
+      // 🔹 similarity عام
+      let simFull = similarity(clean, key);
+      if (simFull > 0.7) {
+        score += 3;
+        matched = true;
+      }
+
+      if (matched) matchedKeywords++;
+    });
+
+    // 🔥 BONUS: لو أكثر من كلمة تطابقت
+    score += matchedKeywords * 3;
+
+    return score;
+  }
+
+  // =========================
+  // 🎯 اختيار الأفضل
+  // =========================
+  let best = {
+    score: 0,
+    url: DEFAULT
+  };
+
+  ROUTES.forEach(route => {
+    let s = scoreRoute(route);
+    if (s > best.score) {
+      best = { score: s, url: route.url };
+    }
+  });
+
+  // =========================
+  // 🚨 fallback
+  // =========================
+  if (best.score < 5) {
+    location.replace(DEFAULT);
+  } else {
+    location.replace(best.url);
+  }
+
 })();
 </script>
 </head>
